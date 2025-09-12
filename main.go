@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/sinclairtarget/git-who/internal/git"
+	"github.com/sinclairtarget/git-who/internal/pretty"
 	"github.com/sinclairtarget/git-who/internal/subcommands"
 	"github.com/sinclairtarget/git-who/internal/tally"
 	"github.com/sinclairtarget/git-who/internal/utils/flagutils"
@@ -40,6 +41,7 @@ func main() {
 
 	versionFlag := mainFlagSet.Bool("version", false, "Print version and exit")
 	verboseFlag := mainFlagSet.Bool("v", false, "Enables debug logging")
+	colorFlag := mainFlagSet.Bool("color", false, "Force enable ANSI color output (overrides NO_COLOR env var)")
 
 	mainFlagSet.Usage = func() {
 		fmt.Println("Usage: git-who [-v] [subcommand] [subcommand options...]")
@@ -71,7 +73,7 @@ func main() {
 loop:
 	for subcmdIndex < len(os.Args) {
 		switch os.Args[subcmdIndex] {
-		case "-version", "--version", "-v", "--v", "-h", "--help":
+		case "-version", "--version", "-v", "--v", "-h", "--help", "-color", "--color":
 			subcmdIndex += 1
 		default:
 			break loop
@@ -83,6 +85,14 @@ loop:
 	if *versionFlag {
 		fmt.Printf("%s %s\n", Version, Commit)
 		return
+	}
+
+	// Handle color settings according to NO_COLOR spec
+	// Priority: --color flag > NO_COLOR env var > default (enabled)
+	if *colorFlag {
+		pretty.SetColorEnabled(true)
+	} else if noColor, exists := os.LookupEnv("NO_COLOR"); exists && noColor != "" {
+		pretty.SetColorEnabled(false)
 	}
 
 	if *verboseFlag {
